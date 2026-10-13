@@ -31,6 +31,28 @@ VERSION = "0.1 beta"
 # may talk to the helper.
 SITE = os.environ.get("HORNY_BUILDER_SITE") or "https://ToxicLizard99.github.io/the-horny-builder/"  # env: for testing
 SITE_ORIGINS = {urllib.parse.urlsplit(SITE)._replace(path="").geturl().lower()}  # browsers send it in lowercase
+# The developer's copy has the page next to it; the beta's helper fetches it from SITE.
+LOCAL_PAGE = (HERE / "web" / "index.html").is_file()
+PAGE_FILES = {"index.html": "text/html; charset=utf-8", "app.js": "text/javascript; charset=utf-8",
+              "style.css": "text/css; charset=utf-8"}
+_page_cache = {}  # name → (fetched at, bytes): fresh from GitHub each minute, last copy if offline
+
+
+def page_file(name):
+    import urllib.request
+    got = _page_cache.get(name)
+    if got and time.time() - got[0] < 60:
+        return got[1], PAGE_FILES[name]
+    try:
+        req = urllib.request.Request(SITE + name, headers={"Cache-Control": "no-cache", "User-Agent": "TheHornyBuilder-helper"})
+        with urllib.request.urlopen(req, timeout=10) as r:
+            data = r.read()
+        _page_cache[name] = (time.time(), data)
+    except OSError:
+        if not got:
+            raise
+        data = got[1]  # offline: keep using the copy fetched earlier this session
+    return data, PAGE_FILES[name]
 # AI connections come in a later version: the beta ships without mcp_server.py,
 # and the editor shows its AI button and Settings page as "coming soon".
 AI_AVAILABLE = (HERE / "mcp_server.py").exists()
@@ -528,7 +550,32 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
         if url.path == "/":
             self.path = "/index.html"
+            url = urllib.parse.urlsplit(self.path)
+        if not LOCAL_PAGE and url.path.lstrip("/") in PAGE_FILES:
+            return self.send_page(url.path.lstrip("/"))
         super().do_GET()
+
+    def send_page(self, name):
+        """The beta: the editor page lives on GitHub Pages. The helper fetches it
+        from there and hands it out on this PC's own address, so the page and the
+        helper share one address and browsers don't block them (Brave refuses
+        websites that reach into localhost)."""
+        try:
+            data, kind = page_file(name)
+        except OSError as err:
+            body = (f"<h2>The Horny Builder</h2><p>The editor page couldn't be fetched from GitHub ({err}). "
+                    f"Check your internet connection, then reload this page.</p>").encode("utf-8")
+            self.send_response(502)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
+        self.send_response(200)
+        self.send_header("Content-Type", kind)
+        self.send_header("Content-Length", str(len(data)))
+        self.end_headers()
+        self.wfile.write(data)
 
     def do_POST(self):
         url = urllib.parse.urlsplit(self.path)
@@ -665,9 +712,9 @@ def free_port(start):
 if __name__ == "__main__":
     port = free_port(FIRST_PORT)
     server = http.server.ThreadingHTTPServer(("127.0.0.1", port), Handler)
-    # The beta's page lives on GitHub Pages and this is only its helper; a copy
-    # with the page next to it (the developer's) serves the page itself.
-    url = f"http://localhost:{port}/" if (HERE / "web" / "index.html").is_file() else SITE
+    # The page comes from next to this file (developer) or from GitHub through
+    # the helper (beta); either way it opens on this PC's own address.
+    url = f"http://localhost:{port}/"
     print("The Horny Builder helper is running. Keep this window open while you build.")
     print(f"Worlds: {WORLDS if paths.worlds_chosen() else 'not picked yet (the editor asks)'}")
     print(f"Editor: {url}   (close this window, or Ctrl+C, to stop)")

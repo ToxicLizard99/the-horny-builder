@@ -74,14 +74,14 @@ async function waitForHelper() {
   el.id = 'helper-screen';
   el.innerHTML = `<div class="panel">
       <h2>The Horny Builder</h2>
-      <p>The editor needs its <b>helper</b> running on your PC. It reads your rooms and the 3DXChat models from your own game, and nothing leaves your PC.</p>
+      <p>The editor runs through its <b>helper</b> on your PC. It reads your rooms and the 3DXChat models from your own game, and nothing leaves your PC.</p>
       <ol>
         <li><a href="${REPO}/releases/latest" target="_blank" rel="noopener">Download the helper</a>, unzip it, and run <b>Setup.bat</b> once.</li>
-        <li>Start <b>The Horny Builder</b> from the shortcut Setup made, and keep its window open.</li>
-        <li>If your browser asks to let this page reach <b>this device</b> or <b>localhost</b>, click <b>Allow</b>.</li>
+        <li>Start <b>The Horny Builder</b> from the shortcut Setup made. The editor opens in your browser by itself; keep the helper's window open while you build.</li>
       </ol>
+      <p class="hs-small">Helper already running? <a href="http://localhost:8710/">Open the editor here</a>.
+        <a href="${REPO}/issues" target="_blank" rel="noopener">Problems? Tell us on GitHub.</a></p>
       <div class="hs-status"><span class="aidot busy"></span><span>Looking for the helper…</span></div>
-      <p class="hs-small">Already running? Check its window is still open. <a href="${REPO}/issues" target="_blank" rel="noopener">Problems? Tell us on GitHub.</a></p>
     </div>`;
   document.body.appendChild(el);
   // while waiting, knock on the usual ports often and on all of them now and then

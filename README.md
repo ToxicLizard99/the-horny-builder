@@ -11,9 +11,8 @@ A room editor for 3DXChat worlds: a clearer 3D view with fewer bugs and a friend
    - gets the helper ready (you need [Python 3.10+](https://www.python.org/downloads/); tick "Add python.exe to PATH" when installing);
    - reads the 3DXChat models from **your own** game;
    - puts a **The Horny Builder** shortcut on your desktop.
-3. **Start The Horny Builder** from that shortcut. The editor opens in your browser. Keep the helper's window open while you build.
-4. If your browser asks to let the page reach **this device** or **localhost**, click **Allow**. That's how the page talks to the helper on your PC.
-5. In the editor, pick your **Worlds folder** (usually `Documents\3DXChat\Worlds`) and open a room with **☰ → Load room**.
+3. **Start The Horny Builder** from that shortcut. The editor opens in your browser by itself. Keep the helper's window open while you build.
+4. In the editor, pick your **Worlds folder** (usually `Documents\3DXChat\Worlds`) and open a room with **☰ → Load room**.
 
 After a 3DXChat update, run `Setup.bat` again to refresh the models.
 
@@ -21,7 +20,7 @@ After a 3DXChat update, run `Setup.bat` again to refresh the models.
 
 - **Your rooms:** read and saved on your own disk, through the helper.
 - **The game's models:** extracted from your own game, kept in `%LOCALAPPDATA%\3DX Editor`, and never uploaded.
-- **The editor page:** comes from GitHub, but nothing you open in it is sent anywhere.
+- **The editor page:** lives here on GitHub. The helper fetches it each time you start, so you always get the latest fixes, but nothing you open in it is sent anywhere.
 
 ## Feedback
 
