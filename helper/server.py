@@ -285,7 +285,10 @@ def settings_info():
     worlds, worlds_auto = paths.worlds_folder()
     game, game_auto = paths.game_folder()
     guess = paths.worlds_guess()
-    return {"version": VERSION, "worlds": str(WORLDS), "worlds_set": paths.worlds_chosen() is not None,
+    # The Worlds folder (pick it once, then a room list) is a later feature: the
+    # beta (page fetched from GitHub) loads and saves rooms with Windows' windows.
+    return {"version": VERSION, "worlds_feature": LOCAL_PAGE,
+            "worlds": str(WORLDS), "worlds_set": paths.worlds_chosen() is not None,
             "worlds_guess": str(guess) if guess else None,
             "game": str(game) if game else None, "game_auto": game_auto,
             "ai_available": AI_AVAILABLE, "ai": ai_status() if AI_AVAILABLE else None}

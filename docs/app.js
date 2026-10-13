@@ -2874,7 +2874,7 @@ function aiPage() {
 function setPageHtml(page) {
   const info = setInfo;
   if (page === 'general') return `<h3>General</h3><p class="lead">Where your rooms are and how the editor starts.</p>`
-    + sCard('Folders', (!info ? sOpt('Worlds folder', '', '', 'worlds')
+    + sCard('Folders', (info && !info.worlds_feature ? '' : !info ? sOpt('Worlds folder', '', '', 'worlds')
       : info.worlds_set
         ? sOpt('Worlds folder', `<span class="sok">${svg('check')}Chosen by you</span>`, '', 'worlds')
           + sPath('worlds', info.worlds, true, '<button class="act small" data-act="open" data-which="worlds">Open</button>')
@@ -2883,7 +2883,7 @@ function setPageHtml(page) {
           + `<div class="spath"><code title="${esc(info.worlds_guess || '')}">${esc(info.worlds_guess || 'Not found')}</code>`
           + (info.worlds_guess ? '<button class="act small primary" data-act="use-guess">Use this folder</button>' : '')
           + '<button class="act small" data-act="folder" data-which="worlds">Change…</button></div>')
-      + '<div style="height:10px"></div>'
+      + (info && !info.worlds_feature ? '' : '<div style="height:10px"></div>')
       + sOpt('3DXChat game folder', 'Used to read the game\'s models and materials. ' + (info ? found(!!info.game, info.game_auto) : ''), '', 'game')
       + sPath('game', info?.game, info?.game_auto ?? true))
     + sCard('Start-up', sOpt('Open the last room', 'Otherwise the editor starts by asking which room to open.', sTog('openLast', settings.openLast))
@@ -3230,7 +3230,10 @@ $('menu-btn').onclick = (ev) => openPopup(ev.currentTarget, [
     { label: 'Pick your Worlds folder…', icon: 'folder-search', run: () => openSettings('general') },
   ]),
 ]);
-function worldsReady() { return !!setInfo?.worlds_set; }
+// The Worlds folder feature (pick it once, Save as into it) is on in the
+// developer's copy and comes later in the beta, which just uses Windows' windows.
+const worldsFeature = () => setInfo?.worlds_feature !== false;
+function worldsReady() { return !worldsFeature() || !!setInfo?.worlds_set; }
 function needWorldsFolder() {
   log('Pick your Worlds folder first (Settings → General); then rooms can be loaded.', 'info');
   openSettings('general');
@@ -3493,8 +3496,8 @@ async function saveAs() {
   if (!world) return;
   const base = current ? roomLabel(current).split('/').pop() + ' copy' : (untitled || 'New room').replace(/\.world$/i, '');
   // in the Worlds folder (name + folder), or anywhere on this PC (Windows' save window)
-  let path = worldsReady() ? await askRoomName('Save as', current && !isFullPath(current) ? current.replace(/\.world$/i, '') + ' copy' : base, 'Save', true) : '*elsewhere';
-  if (path === '*elsewhere') path = await pickOnPC('save', folderOf(current || ''), base + '.world');
+  let path = worldsFeature() && worldsReady() ? await askRoomName('Save as', current && !isFullPath(current) ? current.replace(/\.world$/i, '') + ' copy' : base, 'Save', true) : '*elsewhere';
+  if (path === '*elsewhere') path = await pickOnPC('save', startFolder(), base + '.world');
   if (!path) return;
   const elsewhere = isFullPath(path);  // Windows' save window already asked about replacing
   let { status, body } = await writeWorld(path, !elsewhere);
@@ -3518,8 +3521,8 @@ const DEFAULT_AMBIENT = [2.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.8, 1.0, 1.0, 1.0, 1.0];
 async function newWorld() {
   if (!worldsReady()) { needWorldsFolder(); return; }
   if (dirty && !await confirmBox('Unsaved changes', 'This room has unsaved changes. Discard them?', 'Discard', true)) return;
-  let path = await askRoomName('New room', 'Props/New prop', 'Create', true);
-  if (path === '*elsewhere') path = await pickOnPC('save', '', 'New room.world');
+  let path = worldsFeature() ? await askRoomName('New room', 'Props/New prop', 'Create', true) : '*elsewhere';
+  if (path === '*elsewhere') path = await pickOnPC('save', startFolder(), 'New room.world');
   if (!path) return;
   const fresh = {
     respawn: { p: [0, 1.05, -3], r: 0 },
@@ -3967,7 +3970,13 @@ const last = recall('3dx-editor-world');
 const lastOutside = isFullPath(last) && await fetch(HELPER + '/api/mtime?path=' + encodeURIComponent(last)).then((r) => r.ok).catch(() => false);
 const firstPath = lastOutside || worldList.some((w) => w.path === last) ? last : worldList[0]?.path;
 await loadSetInfo();
-if (!worldsReady()) {  // first run (or the folder is gone): pick the Worlds folder before any room
+if (!worldsFeature()) {
+  // the beta: no folder to pick; reopen the last room if it's still there
+  const lastThere = last && await fetch(HELPER + '/api/mtime?path=' + encodeURIComponent(last)).then((r) => r.ok).catch(() => false);
+  if (settings.openLast && lastThere) loadWorld(last, { reframe: true });
+  else if (!settings.openLast) loadRoom();
+  else log('Welcome! Open a room with ☰ → Load room, make one with ☰ → New room, or drag a .world file here.', 'info');
+} else if (!worldsReady()) {  // first run (or the folder is gone): pick the Worlds folder before any room
   log('Welcome! Pick your Worlds folder to start (Settings → General).', 'info');
   openSettings('general');
 } else if (!worldList.length) log('No rooms found in the Worlds folder. Use ☰ → New room.', 'info');
