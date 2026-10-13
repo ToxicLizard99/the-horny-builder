@@ -1,0 +1,30 @@
+name: Bug report
+description: Something broke or didn't work as expected.
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to make it happen again
+      placeholder: |
+        1. Load room …
+        2. Select …
+        3. …
+  - type: input
+    id: version
+    attributes:
+      label: Versions
+      description: Filled in for you when you report from the editor (Settings → About & feedback).
+      placeholder: page 0.1 beta · helper 0.1 beta · Chrome/…
+  - type: textarea
+    id: extra
+    attributes:
+      label: Screenshots or the room file
+      description: Drag pictures or a .world file in here if it helps.

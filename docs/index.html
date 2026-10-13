@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3DX World Editor</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://unpkg.com/lucide@0.344.0/dist/umd/lucide.min.js"></script>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<div id="view"></div>
+
+<!-- ================= top bar: 3DXChat's builder order ================= -->
+<div id="top">
+  <div class="bar panel" id="toolbar">
+    <button class="ib" id="menu-btn" data-icon="menu" data-tip="Menu"></button>
+    <div class="sep"></div>
+    <button class="ib" id="undo" data-icon="undo-2" data-tip="Undo (Ctrl+Z)"></button>
+    <button class="ib" id="redo" data-icon="redo-2" data-tip="Redo (Ctrl+Y)"></button>
+    <button class="ib" id="copy" data-icon="copy" data-tip="Copy (Ctrl+C)"></button>
+    <button class="ib" id="paste" data-icon="clipboard-paste" data-tip="Paste (Ctrl+V)"></button>
+    <button class="ib" id="dup" data-icon="copy-plus" data-tip="Duplicate (Ctrl+D)"></button>
+    <button class="ib" id="del" data-icon="trash-2" data-tip="Delete (Del)"></button>
+    <div class="sep"></div>
+    <button class="ib tool" data-mode="translate" data-icon="move-3d" data-tip="Move (1)"></button>
+    <button class="ib tool" data-mode="rotate" data-icon="rotate-3d" data-tip="Rotate (2)"></button>
+    <button class="ib tool" data-mode="scale" data-icon="scale-3d" data-tip="Scale (3)"></button>
+    <button class="ib tool" data-mode="resize" data-icon="maximize" data-tip="Resize: drag a side, the opposite side stays put (4)"></button>
+    <button class="ib tool" data-mode="grab" data-icon="hand" data-tip="Grab: drag onto another object and it sticks to that side (5)"></button>
+    <div class="sep"></div>
+    <button class="ib" id="list-btn" data-icon="list-tree" data-tip="Object list (L)"></button>
+    <button class="dd" id="space-btn" data-icon="globe" data-tip="Handles turn with the object, or stay level (X)"><span>Global</span></button>
+    <button class="dd" id="pivot-btn" data-icon="crosshair" data-tip="Where the handles sit"><span>Pivot</span></button>
+    <button class="ib" id="focus" data-icon="focus" data-tip="Focus on the selection (F)"></button>
+    <button class="ib tool" id="brush" data-mode="brush" data-icon="paintbrush" data-tip="Colour brush: click objects to paint them (B)"></button>
+    <button class="ib" id="group" data-icon="group" data-tip="Group (Ctrl+G)"></button>
+    <button class="ib" id="ungroup" data-icon="ungroup" data-tip="Ungroup (Ctrl+Shift+G)"></button>
+    <div class="sep"></div>
+    <button class="ib mag" id="magnet-move" data-icon="magnet" data-tip="Snap when moving"></button>
+    <button class="dd snapsize" id="snap-btn" data-icon="ruler" data-tip="Snap step for moving"><span>5 cm</span></button>
+    <button class="ib mag" id="magnet-turn" data-icon="magnet" data-tip="Snap when rotating"></button>
+    <button class="dd snapsize" id="angle-btn" data-icon="rotate-cw" data-tip="Snap angle for rotating"><span>15°</span></button>
+    <div class="sep"></div>
+    <button class="ib" id="help-btn" data-icon="help-circle" data-tip="Help and shortcuts (?)"></button>
+  </div>
+  <div class="spacer"></div>
+  <button class="chip panel" id="ai-btn" data-icon="sparkles" data-tip="AI assistant"><span>AI</span><span class="aidot" id="ai-dot"></span></button>
+  <button class="chip panel" id="weather-btn" data-icon="cloud-sun" data-tip="Weather in this room"><span>Day</span></button>
+  <div class="chip panel" id="world-chip" data-tip="The open room"><span class="dot"></span><span id="world-name">No room open</span><span class="muted" id="world-state"></span></div>
+</div>
+
+<!-- object list -->
+<div id="objlist" class="panel" hidden>
+  <div class="ol-head">
+    <input id="filter" type="search" placeholder="Find objects (name or material)">
+  </div>
+  <div id="tree"><div id="tree-inner"></div></div>
+  <div class="ol-foot muted" id="tree-foot"></div>
+</div>
+
+<!-- selection panel -->
+<div id="selpanel" class="panel" hidden></div>
+
+<!-- corner stack: log, view controls, alerts, fps -->
+<div id="stack" class="br">
+  <div class="panel log" id="log"></div>
+  <div class="panel" id="viewbox">
+    <div class="view">
+      <button class="dd" id="v3d" data-icon="box" data-tip="Show the whole room (Home)"><span>3D</span></button>
+      <button class="dd toggle" id="vtop" data-icon="map" data-tip="Look straight down; click again to go back (T)"><span>Top</span></button>
+      <button class="dd" id="detail-btn" data-icon="gauge" data-tip="How much detail to draw far away"><span>Normal</span></button>
+      <button class="dd toggle on" id="props-btn" data-icon="shapes" data-tip="Show props"><span>Props</span></button>
+      <button class="dd toggle on" id="glass-btn" data-icon="glass-water" data-tip="Show glass"><span>Glass</span></button>
+    </div>
+    <div class="layer" data-tip="Hide everything above a height, to work on lower floors">
+      <span data-icon="layers"></span> Hide above <input type="range" id="layer" min="0" max="1000" value="1000"> <span id="layer-val">all</span>
+    </div>
+  </div>
+  <div class="panel alert" id="alert" hidden></div>
+  <div class="fps" id="perf"></div>
+</div>
+
+<!-- dock + picker -->
+<div id="dockwrap">
+  <div id="picker" class="panel" hidden>
+    <div class="ptabs" id="ptabs"></div>
+    <div class="cards" id="cards"></div>
+  </div>
+  <div id="dock" class="panel"></div>
+</div>
+
+<div id="popup" class="panel" hidden></div>
+<div id="modal-bg" hidden></div>
+<div id="modal" class="panel" hidden></div>
+<div id="place-hint" class="panel" hidden></div>
+
+<datalist id="names"></datalist>
+<datalist id="materials"></datalist>
+<script>
+  // Show script errors in the log instead of failing silently.
+  function showError(msg) {
+    const l = document.getElementById('log');
+    if (l) l.insertAdjacentHTML('afterbegin', '<div class="err"><b>error</b>' + String(msg).replace(/</g, '&lt;') + '</div>');
+  }
+  addEventListener('error', (e) => showError(e.message || 'a script failed to load (check the internet connection)'), true);
+  addEventListener('unhandledrejection', (e) => showError(e.reason?.message || String(e.reason)));
+</script>
+<script type="module" src="app.js"></script>
+</body>
+</html>
